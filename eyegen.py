@@ -395,9 +395,11 @@ class MainUI(QtWidgets.QWidget):
         self.vbox.addWidget(self.btnRem)
 
         self.btnUp = QtWidgets.QPushButton("move Up")
+        self.btnUp.clicked.connect(self.upLayer)
         self.vbox.addWidget(self.btnUp)
 
         self.btnDown = QtWidgets.QPushButton("move Down")
+        self.btnDown.clicked.connect(self.downLayer)
         self.vbox.addWidget(self.btnDown)
 
         self.btnExport = QtWidgets.QPushButton("Export")
@@ -559,6 +561,34 @@ class MainUI(QtWidgets.QWidget):
             row -= 1
         self.lstLayer.setCurrentRow(row)
         self.layerChanged(row)
+        self.updateBase()
+
+    def upLayer(self):
+        row = self.lstLayer.currentRow()
+        if row <= 0:
+            return
+        idx = len(self.layers) - 1 - row
+        pane = self.layers[idx]
+        del self.layers[idx]
+        self.layers.insert(idx + 1,pane)
+        self.lstLayer.takeItem(row)
+        self.lstLayer.insertItem(row - 1,pane.tag)
+        self.lstLayer.setCurrentRow(row - 1)
+        self.layerChanged(row - 1)
+        self.updateBase()
+
+    def downLayer(self):
+        row = self.lstLayer.currentRow()
+        if row >= self.lstLayer.count():
+            return
+        idx = len(self.layers) - 1 - row
+        pane = self.layers[idx]
+        del self.layers[idx]
+        self.layers.insert(idx - 1,pane)
+        self.lstLayer.takeItem(row)
+        self.lstLayer.insertItem(row + 1,pane.tag)
+        self.lstLayer.setCurrentRow(row + 1)
+        self.layerChanged(row + 1)
         self.updateBase()
 
     def saveEye(self):
