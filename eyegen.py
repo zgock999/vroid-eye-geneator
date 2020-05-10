@@ -360,8 +360,7 @@ class MainUI(QtWidgets.QWidget):
         self.layers = []
 
         self.setWindowTitle("VRoid Eye Generator")
-
-        self.imgBase = Image.open("data/base.png")
+        self.imgBase = Image.open(os.path.join(os.path.dirname(sys.argv[0]),"data","base.png"))
         hbox = QtWidgets.QHBoxLayout()
         self.vbox = QtWidgets.QVBoxLayout()
         hbox2 = QtWidgets.QHBoxLayout()
@@ -638,8 +637,8 @@ class MainUI(QtWidgets.QWidget):
         self.imgExport.save(outName)        
 
 if __name__ == "__main__":
-    os.chdir(os.path.dirname(__file__))
-
+#    os.chdir(os.path.dirname(__file__))
+    os.chdir(os.path.dirname(sys.argv[0]))
     app = QtWidgets.QApplication(sys.argv)
 
     window = MainUI()
