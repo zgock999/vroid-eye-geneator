@@ -1,5 +1,4 @@
 '''
-(C) @zgock999@mstdn.maud.io
 MIT License
 
 Copyright (c) 2020 @zgock999@mstdn.maud.io
