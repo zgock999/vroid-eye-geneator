@@ -2,7 +2,7 @@
 (C) @zgock999@mstdn.maud.io
 MIT License
 
-Copyright (c) 2020 Tatsuya Ando
+Copyright (c) 2020 @zgock999@mstdn.maud.io
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -394,6 +394,10 @@ class MainUI(QtWidgets.QWidget):
         self.btnRem.clicked.connect(self.removeLayer)
         self.vbox.addWidget(self.btnRem)
 
+        self.btnDup = QtWidgets.QPushButton("Duplicate")
+        self.btnDup.clicked.connect(self.dupeLayer)
+        self.vbox.addWidget(self.btnDup)
+
         self.btnUp = QtWidgets.QPushButton("move Up")
         self.btnUp.clicked.connect(self.upLayer)
         self.vbox.addWidget(self.btnUp)
@@ -550,6 +554,27 @@ class MainUI(QtWidgets.QWidget):
             self.lstLayer.setCurrentRow(0)
             self.layerChanged(0)
     
+    def dupeLayer(self):
+        row = self.lstLayer.currentRow()
+        idx = len(self.layers) - 1 - row
+        _,tag,mode,dir,values = self.layers[idx].getValue()
+        pane = None
+        if tag == "Fill":
+            pane = PaneFill()
+        elif tag == "Linear":
+            pane = PaneLinear()
+        if pane != None:
+            pane.setBase(self)
+            pane.setValue(mode,dir,values)
+            pane.slot = len(self.layers)
+            pane.setVisible(False)
+            self.layers.append(pane)
+            self.lstLayer.insertItem(0,tag)
+            self.vbox.addWidget(self.layers[-1])
+            self.updateBase()
+            self.lstLayer.setCurrentRow(0)
+            self.layerChanged(0)
+
     def removeLayer(self):
         row = self.lstLayer.currentRow()
         idx = len(self.layers) - 1 - row
