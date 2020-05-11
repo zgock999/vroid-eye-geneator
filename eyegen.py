@@ -73,6 +73,9 @@ class PaneEdit(QtWidgets.QWidget):
         self.base = None
         self.slot = -1
         self.tag = ""
+        self.lastvalue = ()
+        self.img_l = None
+        self.img_l = None
         self.vbox = QtWidgets.QVBoxLayout()
         self.setLayout(self.vbox)
 
@@ -116,12 +119,48 @@ class PaneEdit(QtWidgets.QWidget):
         self.cmbMode.setCurrentText(mode)
         self.cmbDir.setCurrentText(dir)
 
+    def valueChanged(self):
+        if self.base == None:
+            return
+        if self.base.auto_update:
+            self.base.invalited = True
+            self.base.updateBase()
+
 class NumberEdit(QtWidgets.QLineEdit):
     def __init__(self,initial,onchange,parent=None):
         super(NumberEdit,self).__init__(initial)
-        self.setFixedWidth(64)
+        self.setFixedWidth(48)
         self.setValidator(QtGui.QIntValidator())
         self.textChanged[str].connect(onchange)
+
+class SilderGroup(QtWidgets.QHBoxLayout):
+    valueChanged = QtCore.Signal()
+
+    def __init__(self,parent=None):
+        super(SilderGroup, self).__init__()
+        self.slider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
+        self.slider.valueChanged[int].connect(self.sliderChange)
+        self.addWidget(self.slider)
+        self.txt = NumberEdit("0",self.txtChange)
+        self.addWidget(self.txt)
+
+    def txtChange(self,str):
+        if str != "":
+            value = int(str)
+            if self.slider.value() != value:
+                self.slider.setValue(value)
+                self.valueChanged.emit()
+
+    def sliderChange(self,value):
+        if value != int(self.txt.text()):
+            self.txt.setText(str(value))
+            self.valueChanged.emit()
+    
+    def value(self):
+        return(self.slider.value())
+
+    def setValue(self,value):
+        self.slider.setValue(value)
 
 class PaneFill(PaneEdit):
     def __init__(self,parent=None):
@@ -131,13 +170,9 @@ class PaneFill(PaneEdit):
         self.tag = "Fill"
 
         self.vbox.addWidget(QtWidgets.QLabel("Size"))
-        hbox = QtWidgets.QHBoxLayout()
-        self.slWidth = QtWidgets.QSlider(QtCore.Qt.Horizontal)
-        self.slWidth.valueChanged[int].connect(self.sliderChange)
-        hbox.addWidget(self.slWidth)
-        self.txtWidth = NumberEdit("0",self.valueChange)
-        hbox.addWidget(self.txtWidth)
-        self.vbox.addLayout(hbox)
+        self.slWidth = SilderGroup()
+        self.slWidth.valueChanged.connect(self.valueChanged)
+        self.vbox.addLayout(self.slWidth)
 
         hbox = QtWidgets.QHBoxLayout()
         self.btnColor = QColorButton("")
@@ -148,61 +183,41 @@ class PaneFill(PaneEdit):
         self.vbox.addLayout(hbox)
 
         self.vbox.addWidget(QtWidgets.QLabel("Blur"))
-        hbox = QtWidgets.QHBoxLayout()
-        self.slBlur = QtWidgets.QSlider(QtCore.Qt.Horizontal)
-        self.slBlur.valueChanged[int].connect(self.blurSlide)
-        hbox.addWidget(self.slBlur)
-        self.txtBlur = NumberEdit("0",self.valueChange)
-        hbox.addWidget(self.txtBlur)
-        self.vbox.addLayout(hbox)
+        self.slBlur = SilderGroup()
+        self.slBlur.valueChanged.connect(self.valueChanged)
+        self.vbox.addLayout(self.slBlur)
 
         self.vbox.addWidget(QtWidgets.QLabel("X offset"))
-        hbox = QtWidgets.QHBoxLayout()
-        self.slXOffset = QtWidgets.QSlider(QtCore.Qt.Horizontal)
-        self.slXOffset.valueChanged[int].connect(self.xOffSlide)
-        hbox.addWidget(self.slXOffset)
-        self.txtXOffset = NumberEdit("0",self.valueChange)
-        hbox.addWidget(self.txtXOffset)
-        self.vbox.addLayout(hbox)
+        self.slxOffset = SilderGroup()
+        self.slxOffset.valueChanged.connect(self.valueChanged)
+        self.vbox.addLayout(self.slxOffset)
 
         self.vbox.addWidget(QtWidgets.QLabel("Y offset"))
-        hbox = QtWidgets.QHBoxLayout()
-        self.slYOffset = QtWidgets.QSlider(QtCore.Qt.Horizontal)
-        self.slYOffset.valueChanged[int].connect(self.yOffSlide)
-        hbox.addWidget(self.slYOffset)
-        self.txtYOffset = NumberEdit("0",self.valueChange)
-        hbox.addWidget(self.txtYOffset)
-        self.vbox.addLayout(hbox)
+        self.slyOffset = SilderGroup()
+        self.slyOffset.valueChanged.connect(self.valueChanged)
+        self.vbox.addLayout(self.slyOffset)
 
         self.vbox.addWidget(QtWidgets.QLabel("Rotate"))
-        hbox = QtWidgets.QHBoxLayout()
-        self.slRotate = QtWidgets.QSlider(QtCore.Qt.Horizontal)
-        self.slRotate.valueChanged[int].connect(self.rotateSlide)
-        hbox.addWidget(self.slRotate)
-        self.slRotate.setMinimum(-180)
-        self.slRotate.setMaximum(180)
-        self.txtRotate = NumberEdit("0",self.valueChange)
-        hbox.addWidget(self.txtRotate)
-        self.vbox.addLayout(hbox)
+        self.slRotate = SilderGroup()
+        self.slRotate.slider.setMinimum(-180)
+        self.slRotate.slider.setMaximum(180)
+        self.slRotate.valueChanged.connect(self.valueChanged)
+        self.vbox.addLayout(self.slRotate)
 
         self.vbox.addWidget(QtWidgets.QLabel("Cutoff"))
-        hbox = QtWidgets.QHBoxLayout()
-        self.slCutoff = QtWidgets.QSlider(QtCore.Qt.Horizontal)
-        self.slCutoff.valueChanged[int].connect(self.cutoffSlide)
-        hbox.addWidget(self.slCutoff)
-        self.txtCutoff = NumberEdit("0",self.valueChange)
-        hbox.addWidget(self.txtCutoff)
-        self.vbox.addLayout(hbox)
+        self.slCutoff = SilderGroup()
+        self.slCutoff.valueChanged.connect(self.valueChanged)
+        self.vbox.addLayout(self.slCutoff)
 
 
     def setBase(self,base):
         super(PaneFill,self).setBase(base)
-        self.slWidth.setMaximum(int(base.imgBase.size[0] / 4))
-        self.slXOffset.setMinimum(0 - int(base.imgBase.size[0] / 2))
-        self.slXOffset.setMaximum(int(base.imgBase.size[0] / 2))
-        self.slYOffset.setMinimum(0 - base.imgBase.size[1])
-        self.slYOffset.setMaximum(base.imgBase.size[1])
-        self.slCutoff.setMaximum(int(base.imgBase.size[0] / 4))
+        self.slWidth.slider.setMaximum(int(base.imgBase.size[0] / 4))
+        self.slxOffset.slider.setMinimum(0 - int(base.imgBase.size[0] / 2))
+        self.slxOffset.slider.setMaximum(int(base.imgBase.size[0] / 2))
+        self.slyOffset.slider.setMinimum(0 - base.imgBase.size[1])
+        self.slyOffset.slider.setMaximum(base.imgBase.size[1])
+        self.slCutoff.slider.setMaximum(int(base.imgBase.size[0] / 4))
 
     def getValue(self):
         values = super(PaneFill,self).getValue()
@@ -210,20 +225,19 @@ class PaneFill(PaneEdit):
         if color == None:
             return ("",())
         r,g,b,_ = color.getRgb()
-        values.append((int(self.txtWidth.text()),r,g,b,int(self.txtBlur.text()),int(self.txtXOffset.text()),int(self.txtYOffset.text()),int(self.txtRotate.text()),int(self.txtCutoff.text())))
+        values.append((self.slWidth.value(),r,g,b,self.slBlur.value(),self.slxOffset.value(),self.slyOffset.value(),self.slRotate.value(),self.slCutoff.value()))
         #print(values)
         return values
 
     def setValue(self,mode,dir,value):
         super(PaneFill,self).setValue(mode,dir)
         width,r,g,b,blur,xOffset,yOffset,rotate,cutoff = value
-        self.txtWidth.setText(str(width))
         self.slWidth.setValue(width)
         color = QtGui.QColor(r,g,b)
         self.btnColor.setColor(color.name())
         self.slBlur.setValue(blur)
-        self.slXOffset.setValue(xOffset)
-        self.slYOffset.setValue(yOffset)
+        self.slxOffset.setValue(xOffset)
+        self.slyOffset.setValue(yOffset)
         self.slRotate.setValue(rotate)
         self.slCutoff.setValue(cutoff)
 
@@ -253,22 +267,14 @@ class PaneLinear(PaneEdit):
         self.tag = "Linear"
 
         self.vbox.addWidget(QtWidgets.QLabel("Top"))
-        hbox = QtWidgets.QHBoxLayout()
-        self.slWidth = QtWidgets.QSlider(QtCore.Qt.Horizontal)
-        self.slWidth.valueChanged[int].connect(self.sliderChange)
-        hbox.addWidget(self.slWidth)
-        self.txtWidth = NumberEdit("0",self.valueChange)
-        hbox.addWidget(self.txtWidth)
-        self.vbox.addLayout(hbox)
+        self.slTop = SilderGroup()
+        self.slTop.valueChanged.connect(self.valueChanged)
+        self.vbox.addLayout(self.slTop)
 
         self.vbox.addWidget(QtWidgets.QLabel("Bottom"))
-        hbox = QtWidgets.QHBoxLayout()
-        self.slCutoff = QtWidgets.QSlider(QtCore.Qt.Horizontal)
-        self.slCutoff.valueChanged[int].connect(self.cutoffSlide)
-        hbox.addWidget(self.slCutoff)
-        self.txtCutoff = NumberEdit("0",self.valueChange)
-        hbox.addWidget(self.txtCutoff)
-        self.vbox.addLayout(hbox)
+        self.slBottom = SilderGroup()
+        self.slBottom.valueChanged.connect(self.valueChanged)
+        self.vbox.addLayout(self.slBottom)
 
         hbox = QtWidgets.QHBoxLayout()
         self.btnColor = QColorButton("")
@@ -279,41 +285,29 @@ class PaneLinear(PaneEdit):
         self.vbox.addLayout(hbox)
 
         self.vbox.addWidget(QtWidgets.QLabel("Blur"))
-        hbox = QtWidgets.QHBoxLayout()
-        self.slBlur = QtWidgets.QSlider(QtCore.Qt.Horizontal)
-        self.slBlur.valueChanged[int].connect(self.blurSlide)
-        hbox.addWidget(self.slBlur)
-        self.txtBlur = NumberEdit("0",self.valueChange)
-        hbox.addWidget(self.txtBlur)
-        self.vbox.addLayout(hbox)
+        self.slBlur = SilderGroup()
+        self.slBlur.valueChanged.connect(self.valueChanged)
+        self.vbox.addLayout(self.slBlur)
 
         self.vbox.addWidget(QtWidgets.QLabel("Start offset"))
-        hbox = QtWidgets.QHBoxLayout()
-        self.slXOffset = QtWidgets.QSlider(QtCore.Qt.Horizontal)
-        self.slXOffset.valueChanged[int].connect(self.xOffSlide)
-        hbox.addWidget(self.slXOffset)
-        self.txtXOffset = NumberEdit("0",self.valueChange)
-        hbox.addWidget(self.txtXOffset)
-        self.vbox.addLayout(hbox)
+        self.slStart = SilderGroup()
+        self.slStart.valueChanged.connect(self.valueChanged)
+        self.vbox.addLayout(self.slStart)
 
         self.vbox.addWidget(QtWidgets.QLabel("End offset"))
-        hbox = QtWidgets.QHBoxLayout()
-        self.slYOffset = QtWidgets.QSlider(QtCore.Qt.Horizontal)
-        self.slYOffset.valueChanged[int].connect(self.yOffSlide)
-        hbox.addWidget(self.slYOffset)
-        self.txtYOffset = NumberEdit("0",self.valueChange)
-        hbox.addWidget(self.txtYOffset)
-        self.vbox.addLayout(hbox)
+        self.slEnd = SilderGroup()
+        self.slEnd.valueChanged.connect(self.valueChanged)
+        self.vbox.addLayout(self.slEnd)
 
 
     def setBase(self,base):
         super(PaneLinear,self).setBase(base)
-        self.slWidth.setMaximum(int(base.imgBase.size[1]))
-        self.slXOffset.setMinimum(0 - base.imgBase.size[1])
-        self.slXOffset.setMaximum(base.imgBase.size[1])
-        self.slYOffset.setMinimum(0 - base.imgBase.size[1])
-        self.slYOffset.setMaximum(base.imgBase.size[1])
-        self.slCutoff.setMaximum(base.imgBase.size[1])
+        self.slTop.slider.setMaximum(int(base.imgBase.size[1]))
+        self.slBottom.slider.setMinimum(0 - base.imgBase.size[1])
+        self.slStart.slider.setMaximum(base.imgBase.size[1])
+        self.slStart.slider.setMinimum(0 - base.imgBase.size[1])
+        self.slEnd.slider.setMaximum(base.imgBase.size[1])
+        self.slEnd.slider.setMaximum(base.imgBase.size[1])
 
     def getValue(self):
         values = super(PaneLinear,self).getValue()
@@ -321,42 +315,28 @@ class PaneLinear(PaneEdit):
         if color == None:
             return ("",())
         r,g,b,_ = color.getRgb()
-        values.append((int(self.txtWidth.text()),r,g,b,int(self.txtBlur.text()),int(self.txtXOffset.text()),int(self.txtYOffset.text()),0,int(self.txtCutoff.text())))
+        values.append((self.slTop.value(),r,g,b,self.slBlur.value(),self.slStart.value(),self.slEnd.value(),0,self.slBottom.value()))
         #print(values)
         return values
 
     def setValue(self,mode,dir,value):
         super(PaneLinear,self).setValue(mode,dir)
-        width,r,g,b,blur,xOffset,yOffset,rotate,cutoff = value
-        self.txtWidth.setText(str(width))
-        self.slWidth.setValue(width)
+        top,r,g,b,blur,start,end,_,bottom = value
+        self.slTop.setValue(top)
         color = QtGui.QColor(r,g,b)
         self.btnColor.setColor(color.name())
         self.slBlur.setValue(blur)
-        self.slXOffset.setValue(xOffset)
-        self.slYOffset.setValue(yOffset)
-        self.slCutoff.setValue(cutoff)
-
-    def sliderChange(self,value):
-        self.txtWidth.setText(str(value))
-    
-    def blurSlide(self,value):
-        self.txtBlur.setText(str(value))
-
-    def xOffSlide(self,value):
-        self.txtXOffset.setText(str(value))
-
-    def yOffSlide(self,value):
-        self.txtYOffset.setText(str(value))
-
-    def cutoffSlide(self,value):
-        self.txtCutoff.setText(str(value))
+        self.slStart.setValue(start)
+        self.slEnd.setValue(end)
+        self.slBottom.setValue(bottom)
 
 class MainUI(QtWidgets.QWidget):
     def __init__(self,parent=None):
         super(MainUI, self).__init__()
 
         self.layers = []
+        self.invalited = False
+        self.auto_update = True
 
         self.setWindowTitle("VRoid Eye Generator")
         self.imgBase = Image.open(os.path.join(os.path.dirname(sys.argv[0]),"data","base.png"))
@@ -422,7 +402,6 @@ class MainUI(QtWidgets.QWidget):
         pix = QtGui.QPixmap.fromImage(qim).copy()
         self.items[0].setPixmap(pix)
         self.setLayout(hbox)
-        self.updateBase()
 
         self.vbox = QtWidgets.QVBoxLayout()
         hbox.addLayout(self.vbox)
@@ -430,6 +409,8 @@ class MainUI(QtWidgets.QWidget):
         self.addLayer()
 
         self.imgExport = None
+        self.invalited = True
+        self.updateBase()
 
     def layerChanged(self,idx):
         cur = len(self.layers) - idx - 1
@@ -443,91 +424,119 @@ class MainUI(QtWidgets.QWidget):
                 self.layers[i].setFixedHeight(0)
 
     def updateBase(self):
+        if self.invalited == False:
+            return
+        self.invalited = False
         img = self.imgBase.copy()
         r0 = g0 = b0 = 0
+        img_left = self.imgBase.crop((0,0,int(self.imgBase.size[0] / 2),self.imgBase.size[1]))
+        img_right = self.imgBase.crop((int(img.size[0] / 2),0,self.imgBase.size[0],self.imgBase.size[1]))
+        mask0_l = img_left.split()[-1].copy()
+        mask0_r = img_right.split()[-1].copy()
         for layer in self.layers:
-            _,tag,mode,dir,values = layer.getValue()
-            img_left = self.imgBase.crop((0,0,int(self.imgBase.size[0] / 2),self.imgBase.size[1]))
-            img_right = self.imgBase.crop((int(img.size[0] / 2),0,self.imgBase.size[0],self.imgBase.size[1]))
-            mask0_l = img_left.split()[-1].copy()
-            mask0_r = img_right.split()[-1].copy()
-            img_left.paste((r0,g0,b0),(0,0,img_left.size[0],img_left.size[1]),mask0_l)
-            img_right.paste((r0,g0,b0),(0,0,img_right.size[0],img_right.size[1]),mask0_r)
             img_base_l = img.crop((0,0,int(img.size[0] / 2),img.size[1]))
             img_base_r = img.crop((int(img.size[0] / 2),0,img.size[0],img.size[1]))
-            img_new_l = Image.new("RGBA",img_base_l.size)
-            img_new_r = Image.new("RGBA",img_base_r.size)
-            draw = False
-            if tag == "Fill":
+            _,tag,mode,dir,values = layer.getValue()
+            if layer.lastvalue == layer.getValue():
+                img_new_l = layer.img_l
+                img_new_r = layer.img_r
                 draw = True
-                width,r,g,b,blur,xOffset,yOffset,rotate,cutoff = values
-                if width >= int(self.imgBase.size[0] / 4):
-                    continue
-                if width > 0:
-                    img_left = img_left.resize((img_left.size[0] - width*2,img_left.size[1] - width*2), Image.LANCZOS)
-                    img_right = img_right.resize((img_right.size[0] - width*2,img_right.size[1] - width*2), Image.LANCZOS)
-                cut_left = cut_right = None
-                if cutoff > 0:
-                    cut_left = img_left.resize((cutoff*2,cutoff * 2), Image.LANCZOS).split()[-1]
-                    cut_right = img_right.resize((cutoff*2,cutoff * 2), Image.LANCZOS).split()[-1]
-                mask_l = img_left.split()[-1]
-                mask_r = img_right.split()[-1]
-                mask2_l = Image.new("L",img_new_l.size)
-                mask2_r = Image.new("L",img_new_r.size)
-                mask2_l.paste(mask_l.convert("L"),(width,width))
-                mask2_r.paste(mask_r.convert("L"),(width,width))
-                if cut_right != None:
-                    mask2_l.paste((0),(int(mask2_l.size[0] / 2) - cutoff,int(mask2_l.size[1] / 2) - cutoff),cut_left)
-                if cut_right != None:
-                    mask2_r.paste((0),(int(mask2_r.size[0] / 2) - cutoff,int(mask2_r.size[1] / 2) - cutoff),cut_right)
-                mask2_l = mask2_l.rotate(rotate,translate=(xOffset,yOffset))
-                mask2_r = mask2_r.rotate(0 - rotate,translate=(0 - xOffset,yOffset))
-                if blur > 0:
-                    mask2_l = mask2_l.filter(ImageFilter.GaussianBlur(blur))
-                    mask2_r = mask2_r.filter(ImageFilter.GaussianBlur(blur))
-                img_new_l.paste((r,g,b),(0,0,img_new_l.size[0],img_new_l.size[1]),mask2_l)
-                img_new_r.paste((r,g,b),(0,0,img_new_r.size[0],img_new_r.size[1]),mask2_r)
-                r0 = r
-                g0 = g
-                b0 = b
+            else:
+                img_new_l = Image.new("RGBA",img_base_l.size)
+                img_new_r = Image.new("RGBA",img_base_r.size)
+                draw = False
+                if tag == "Fill":
+                    draw = True
+                    width,r,g,b,blur,xOffset,yOffset,rotate,cutoff = values
+                    if width >= int(self.imgBase.size[0] / 4):
+                        continue
+                    cut_left = cut_right = None
+                    if dir == "Left" or dir == "Both":
+                        if width > 0:
+                            mask_l = img_left.copy().resize((img_left.size[0] - width*2,img_left.size[1] - width*2), Image.LANCZOS).split()[-1]
+                        else:
+                            mask_l = img_left.split()[-1]
+                        if cutoff > 0:
+                            cut_left = img_left.copy().resize((cutoff*2,cutoff * 2), Image.LANCZOS).split()[-1]
+                        mask2_l = Image.new("L",img_new_l.size)
+                        mask2_l.paste(mask_l.convert("L"),(width,width))
+                        if cut_left != None:
+                            mask2_l.paste((0),(int(mask2_l.size[0] / 2) - cutoff,int(mask2_l.size[1] / 2) - cutoff),cut_left)
+                        mask2_l = mask2_l.rotate(rotate,translate=(xOffset,yOffset))
+                        if blur > 0:
+                            mask2_l = mask2_l.filter(ImageFilter.GaussianBlur(blur))
+                        img_new_l.paste((r,g,b),(0,0,img_new_l.size[0],img_new_l.size[1]),mask2_l)
 
-            if tag == "Linear":
-                draw = True
-                width,r,g,b,blur,xOffset,yOffset,rotate,cutoff = values
-                mask2_l = Image.new("L",img_new_l.size)
-                mask2_r = Image.new("L",img_new_r.size)
-                d_l = ImageDraw.Draw(mask2_l)
-                d_r = ImageDraw.Draw(mask2_r)
-                d_l.polygon([(0,width + xOffset),(mask2_l.size[0],width + yOffset),(mask2_l.size[0],mask2_l.size[1] - cutoff + xOffset),(0,mask2_l.size[1] - cutoff + yOffset)],fill=255)
-                d_r.polygon([(0,width + yOffset),(mask2_r.size[0],width + xOffset),(mask2_r.size[0],mask2_r.size[1] - cutoff + yOffset),(0,mask2_r.size[1] - cutoff + xOffset)],fill=255)
-                if blur > 0:
-                    mask2_l = mask2_l.filter(ImageFilter.GaussianBlur(blur))
-                    mask2_r = mask2_r.filter(ImageFilter.GaussianBlur(blur))
-                img_new_l.paste((r,g,b),(0,0,img_new_l.size[0],img_new_l.size[1]),mask2_l)
-                img_new_r.paste((r,g,b),(0,0,img_new_r.size[0],img_new_r.size[1]),mask2_r)
+                    if dir == "Right" or dir == "Both":
+                        if width > 0:
+                            mask_r = img_right.copy().resize((img_right.size[0] - width*2,img_right.size[1] - width*2), Image.LANCZOS).split()[-1]
+                        else:
+                            mask_r = img_right.split()[-1]
+                        if cutoff > 0:
+                            cut_right = img_right.copy().resize((cutoff*2,cutoff * 2), Image.LANCZOS).split()[-1]
+                        mask2_r = Image.new("L",img_new_r.size)
+                        mask2_r.paste(mask_r.convert("L"),(width,width))
+                        if cut_right != None:
+                            mask2_r.paste((0),(int(mask2_r.size[0] / 2) - cutoff,int(mask2_r.size[1] / 2) - cutoff),cut_right)
+                        mask2_r = mask2_r.rotate(0 - rotate,translate=(0 - xOffset,yOffset))
+                        if blur > 0:
+                            mask2_r = mask2_r.filter(ImageFilter.GaussianBlur(blur))
+                        img_new_r.paste((r,g,b),(0,0,img_new_r.size[0],img_new_r.size[1]),mask2_r)
+                    r0 = r
+                    g0 = g
+                    b0 = b
+
+                if tag == "Linear":
+                    draw = True
+                    width,r,g,b,blur,xOffset,yOffset,rotate,cutoff = values
+                    if dir == "Left" or dir == "Both":
+                        mask2_l = Image.new("L",img_new_l.size)
+                        d_l = ImageDraw.Draw(mask2_l)
+                        d_l.polygon([(0,width + xOffset),(mask2_l.size[0],width + yOffset),(mask2_l.size[0],mask2_l.size[1] - cutoff + xOffset),(0,mask2_l.size[1] - cutoff + yOffset)],fill=255)
+                        if blur > 0:
+                            mask2_l = mask2_l.filter(ImageFilter.GaussianBlur(blur))
+                        img_new_l.paste((r,g,b),(0,0,img_new_l.size[0],img_new_l.size[1]),mask2_l)
+
+                    if dir == "Right" or dir == "Both":
+                        mask2_r = Image.new("L",img_new_r.size)
+                        d_r = ImageDraw.Draw(mask2_r)
+                        d_r.polygon([(0,width + yOffset),(mask2_r.size[0],width + xOffset),(mask2_r.size[0],mask2_r.size[1] - cutoff + yOffset),(0,mask2_r.size[1] - cutoff + xOffset)],fill=255)
+                        if blur > 0:
+                            mask2_r = mask2_r.filter(ImageFilter.GaussianBlur(blur))
+                        img_new_r.paste((r,g,b),(0,0,img_new_r.size[0],img_new_r.size[1]),mask2_r)
+
+                layer.img_l = img_new_l
+                layer.img_r = img_new_r
+                layer.lastvalue = layer.getValue()
 
             if draw == True:
-                if mode == "Normal":
-                    img_base_l = Image4Layer.normal(img_base_l,img_new_l)
-                    img_base_r = Image4Layer.normal(img_base_r,img_new_r)
-                elif mode == "Overlay":
-                    img_base_l = Image4Layer.overlay(img_base_l,img_new_l)
-                    img_base_r = Image4Layer.overlay(img_base_r,img_new_r)
-                elif mode == "SoftLight":
-                    img_base_l = Image4Layer.soft_light(img_base_l,img_new_l)
-                    img_base_r = Image4Layer.soft_light(img_base_r,img_new_r)
-                elif mode == "HardLight":
-                    img_base_l = Image4Layer.hard_light(img_base_l,img_new_l)
-                    img_base_r = Image4Layer.hard_light(img_base_r,img_new_r)
-                elif mode == "Screen":
-                    img_base_l = Image4Layer.screen(img_base_l,img_new_l)
-                    img_base_r = Image4Layer.screen(img_base_r,img_new_r)
-                elif mode == "MultiPly":
-                    img_base_l = Image4Layer.multiply(img_base_l,img_new_l)
-                    img_base_r = Image4Layer.multiply(img_base_r,img_new_r)
                 if dir == "Left" or dir == "Both":
+                    if mode == "Normal":
+                        img_base_l = Image4Layer.normal(img_base_l,img_new_l)
+                    elif mode == "Overlay":
+                        img_base_l = Image4Layer.overlay(img_base_l,img_new_l)
+                    elif mode == "SoftLight":
+                        img_base_l = Image4Layer.soft_light(img_base_l,img_new_l)
+                    elif mode == "HardLight":
+                        img_base_l = Image4Layer.hard_light(img_base_l,img_new_l)
+                    elif mode == "Screen":
+                        img_base_l = Image4Layer.screen(img_base_l,img_new_l)
+                    elif mode == "MultiPly":
+                        img_base_l = Image4Layer.multiply(img_base_l,img_new_l)
                     img.paste(img_base_l,(0,0),mask0_l)
                 if dir == "Right" or dir == "Both":
+                    if mode == "Normal":
+                        img_base_r = Image4Layer.normal(img_base_r,img_new_r)
+                    elif mode == "Overlay":
+                        img_base_r = Image4Layer.overlay(img_base_r,img_new_r)
+                    elif mode == "SoftLight":
+                        img_base_r = Image4Layer.soft_light(img_base_r,img_new_r)
+                    elif mode == "HardLight":
+                        img_base_r = Image4Layer.hard_light(img_base_r,img_new_r)
+                    elif mode == "Screen":
+                        img_base_r = Image4Layer.screen(img_base_r,img_new_r)
+                    elif mode == "MultiPly":
+                        img_base_r = Image4Layer.multiply(img_base_r,img_new_r)
                     img.paste(img_base_r,(int(img.size[0] / 2),0),mask0_r)
 
         self.imgExport = img.copy()
@@ -638,6 +647,7 @@ class MainUI(QtWidgets.QWidget):
 
 
     def newEye(self):
+        self.auto_update = False
         for i in reversed(range(len(self.layers))):
             idx = len(self.layers) - 1 - i
             self.layers[idx].setVisible(False)
@@ -646,10 +656,13 @@ class MainUI(QtWidgets.QWidget):
             self.lstLayer.takeItem(idx)
         self.cmbPane.setCurrentText("Fill")
         self.addLayer()
+        self.auto_update = True
+        self.invalited = True
         self.updateBase()
             
 
     def openEye(self):
+        self.auto_update = False
         name,_ = QtWidgets.QFileDialog.getOpenFileName(self, "Open Project", "", "Eyegen files (*.eye)")
         if name == "":
             return
@@ -680,6 +693,8 @@ class MainUI(QtWidgets.QWidget):
                 self.vbox.addWidget(self.layers[-1])
         
         self.lstLayer.setCurrentRow(data["current"])
+        self.auto_update = True
+        self.invalited = True
         self.updateBase()
 
     def exportEye(self):
