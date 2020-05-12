@@ -112,8 +112,11 @@ class PaneEdit(QtWidgets.QWidget):
         self.base.updateBase()
 
     def valueChange(self,str):
-        if str != "":
-            self.updateBase()
+        if str == "":
+            return
+        if self.base.auto_update:
+            self.base.invalited = True
+            self.base.updateBase()
 
     def setValue(self,mode,dir):
         self.cmbMode.setCurrentText(mode)
@@ -177,7 +180,7 @@ class PaneFill(PaneEdit):
         hbox = QtWidgets.QHBoxLayout()
         self.btnColor = QColorButton("")
         self.btnColor.setColor("#000000")
-        self.btnColor.colorChanged.connect(self.updateBase)
+        self.btnColor.colorChanged.connect(self.valueChanged)
         hbox.addWidget(QtWidgets.QLabel("Fill Color"))
         hbox.addWidget(self.btnColor)
         self.vbox.addLayout(hbox)
@@ -279,7 +282,7 @@ class PaneLinear(PaneEdit):
         hbox = QtWidgets.QHBoxLayout()
         self.btnColor = QColorButton("")
         self.btnColor.setColor("#000000")
-        self.btnColor.colorChanged.connect(self.updateBase)
+        self.btnColor.colorChanged.connect(self.valueChanged)
         hbox.addWidget(QtWidgets.QLabel("Fill Color"))
         hbox.addWidget(self.btnColor)
         self.vbox.addLayout(hbox)
@@ -303,6 +306,8 @@ class PaneLinear(PaneEdit):
     def setBase(self,base):
         super(PaneLinear,self).setBase(base)
         self.slTop.slider.setMaximum(int(base.imgBase.size[1]))
+        self.slTop.slider.setMinimum(0 - base.imgBase.size[1])
+        self.slBottom.slider.setMaximum(int(base.imgBase.size[1]))
         self.slBottom.slider.setMinimum(0 - base.imgBase.size[1])
         self.slStart.slider.setMaximum(base.imgBase.size[1])
         self.slStart.slider.setMinimum(0 - base.imgBase.size[1])
@@ -422,13 +427,14 @@ class MainUI(QtWidgets.QWidget):
             else:
                 self.layers[i].setVisible(False)
                 self.layers[i].setFixedHeight(0)
+        self.invalited = True
+        self.updateBase()
 
     def updateBase(self):
         if self.invalited == False:
             return
         self.invalited = False
         img = self.imgBase.copy()
-        r0 = g0 = b0 = 0
         img_left = self.imgBase.crop((0,0,int(self.imgBase.size[0] / 2),self.imgBase.size[1]))
         img_right = self.imgBase.crop((int(img.size[0] / 2),0,self.imgBase.size[0],self.imgBase.size[1]))
         mask0_l = img_left.split()[-1].copy()
@@ -482,9 +488,6 @@ class MainUI(QtWidgets.QWidget):
                         if blur > 0:
                             mask2_r = mask2_r.filter(ImageFilter.GaussianBlur(blur))
                         img_new_r.paste((r,g,b),(0,0,img_new_r.size[0],img_new_r.size[1]),mask2_r)
-                    r0 = r
-                    g0 = g
-                    b0 = b
 
                 if tag == "Linear":
                     draw = True
@@ -594,7 +597,6 @@ class MainUI(QtWidgets.QWidget):
             row -= 1
         self.lstLayer.setCurrentRow(row)
         self.layerChanged(row)
-        self.updateBase()
 
     def upLayer(self):
         row = self.lstLayer.currentRow()
@@ -608,7 +610,6 @@ class MainUI(QtWidgets.QWidget):
         self.lstLayer.insertItem(row - 1,pane.tag)
         self.lstLayer.setCurrentRow(row - 1)
         self.layerChanged(row - 1)
-        self.updateBase()
 
     def downLayer(self):
         row = self.lstLayer.currentRow()
@@ -622,7 +623,6 @@ class MainUI(QtWidgets.QWidget):
         self.lstLayer.insertItem(row + 1,pane.tag)
         self.lstLayer.setCurrentRow(row + 1)
         self.layerChanged(row + 1)
-        self.updateBase()
 
     def saveEye(self):
         name,_ = QtWidgets.QFileDialog.getSaveFileName(self, "Save Project", "", "Eyegen files (*.eye)")
